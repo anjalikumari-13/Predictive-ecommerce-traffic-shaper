@@ -1,0 +1,71 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      PORT: 3000
+      REDIS_URL: redis://redis:6379
+      SERVICE_ROLE: api
+      CIRCUIT_LATENCY_THRESHOLD_MS: 200
+    ports:
+      - "3000:3000"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ./backend
+    command: ["npm", "run", "worker"]
+    environment:
+      REDIS_URL: redis://redis:6379
+      SERVICE_ROLE: worker
+      WORKER_CONCURRENCY: 25
+      SIMULATED_DB_LATENCY_MS: 80
+      SIMULATED_PAYMENT_LATENCY_MS: 60
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  ai-agent:
+    build:
+      context: ./ai-agent
+    environment:
+      BACKEND_URL: http://backend:3000
+      POLL_SECONDS: 5
+    ports:
+      - "8000:8000"
+    depends_on:
+      - backend
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - backend
+      - ai-agent
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
