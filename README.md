@@ -154,3 +154,17 @@ The tests and API documentation were intentionally structured for AI-assisted ex
 6. Run `k6-bot-attack.js`.
 7. Show bot throttling while checkout stays available.
 
+## 📊 Screenshots
+
+### Backend API Health Status
+![Backend API Health](./images/backend-health.png)
+
+### AI Traffic Shaper Agent Status
+![AI Agent Health](./images/ai-agent-health.png)
+
+### Prometheus Monitoring Dashboard
+![Prometheus Metrics](./images/prometheus.png)
+
+### Grafana Real-time Traffic Visualization
+![Grafana Dashboard](./images/grafana.png)
+
